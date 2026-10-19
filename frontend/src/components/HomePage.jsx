@@ -18,7 +18,8 @@ import {
   Tag,
   Filter,
   RefreshCw,
-  Boxes
+  Boxes,
+  Receipt
 } from 'lucide-react';
 import ProduceWeightModal from './ProduceWeightModal';
 import WarehouseInventoryModal from './WarehouseInventoryModal';
@@ -32,6 +33,7 @@ export default function HomePage({
   onLogout,
   onAddToCart,
   onCheckout,
+  onOpenOrders,
   onNavigateAdmin
 }) {
   const [categories, setCategories] = useState([]);
@@ -181,18 +183,30 @@ export default function HomePage({
 
           {/* Nav Actions / Login State */}
           <div className="flex items-center gap-3">
-            {/* Executive Admin & Warehouse Portal - Visible only to SUPER_ADMIN & OPERATIONAL_MANAGER */}
+            {/* Executive Admin & Operations Portal - Distinct portals for SUPER_ADMIN & OPERATIONAL_MANAGER */}
             {(currentUser?.role === 'SUPER_ADMIN' || currentUser?.role === 'OPERATIONAL_MANAGER') && (
               <button
                 id="nav-admin-portal-btn"
                 onClick={onNavigateAdmin}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50 text-xs font-bold text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400 transition-colors cursor-pointer shadow-sm"
-                title="Executive Admin & Warehouse Portal"
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-colors cursor-pointer shadow-sm ${
+                  currentUser.role === 'SUPER_ADMIN'
+                    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 hover:border-emerald-400'
+                    : 'border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100 hover:border-teal-400'
+                }`}
+                title={currentUser.role === 'SUPER_ADMIN' ? 'Executive Admin Portal' : 'Operations & Warehouse Portal'}
               >
-                <ShieldCheck className="w-4 h-4 text-emerald-700" />
-                <span className="hidden md:inline">Admin Portal</span>
-                <span className="text-[10px] bg-emerald-600 text-white px-1.5 py-0.5 rounded-md font-extrabold">
-                  {currentUser.role === 'SUPER_ADMIN' ? 'ADMIN' : 'STAFF'}
+                {currentUser.role === 'SUPER_ADMIN' ? (
+                  <ShieldCheck className="w-4 h-4 text-emerald-700" />
+                ) : (
+                  <Boxes className="w-4 h-4 text-teal-700" />
+                )}
+                <span className="hidden md:inline">
+                  {currentUser.role === 'SUPER_ADMIN' ? 'Admin Portal' : 'Operations Portal'}
+                </span>
+                <span className={`text-[10px] text-white px-1.5 py-0.5 rounded-md font-extrabold ${
+                  currentUser.role === 'SUPER_ADMIN' ? 'bg-emerald-600' : 'bg-teal-600'
+                }`}>
+                  {currentUser.role === 'SUPER_ADMIN' ? 'ADMIN' : 'MANAGER'}
                 </span>
               </button>
             )}
@@ -211,6 +225,19 @@ export default function HomePage({
                 </span>
               )}
             </button>
+
+            {/* My Orders Button (Member 5 View v_order_invoices) */}
+            {currentUser && (
+              <button
+                id="nav-my-orders-btn"
+                onClick={onOpenOrders}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-700 hover:text-emerald-700 hover:border-emerald-300 transition-colors cursor-pointer text-xs font-bold"
+                title="View My Invoices & Order History"
+              >
+                <Receipt className="w-4 h-4 text-emerald-600" />
+                <span className="hidden sm:inline">My Orders</span>
+              </button>
+            )}
 
             {currentUser ? (
               /* Authenticated User View */

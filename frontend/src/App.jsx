@@ -2,13 +2,18 @@ import React, { useState, useEffect } from 'react';
 import HomePage from './components/HomePage';
 import RegisterPage from './components/RegisterPage';
 import LoginPage from './components/LoginPage';
-import AdminDashboard from './components/AdminDashboard';
+import SuperAdminDashboard from './components/SuperAdminDashboard';
+import OperationalManagerDashboard from './components/OperationalManagerDashboard';
+import CartDrawer from './components/CartDrawer';
+import OrderHistoryModal from './components/OrderHistoryModal';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState('home');
   const [currentUser, setCurrentUser] = useState(null);
   const [loginNotice, setLoginNotice] = useState(null);
   const [cartCount, setCartCount] = useState(0);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isOrdersOpen, setIsOrdersOpen] = useState(false);
   const [cartFeedback, setCartFeedback] = useState(null);
   const [intendedAction, setIntendedAction] = useState(null);
 
@@ -32,6 +37,29 @@ export default function App() {
 
     checkActiveSession();
   }, []);
+
+  // Sync cart count when user is authenticated
+  useEffect(() => {
+    const syncCartCount = async () => {
+      if (!currentUser) {
+        setCartCount(0);
+        return;
+      }
+      try {
+        const res = await fetch('/api/cart', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.data) {
+            setCartCount(data.data.totalItemCount || 0);
+          }
+        }
+      } catch (e) {
+        // Quiet fail
+      }
+    };
+
+    syncCartCount();
+  }, [currentUser]);
 
   const handleNavigateHome = () => {
     setCurrentPage('home');
@@ -61,12 +89,15 @@ export default function App() {
       handleNavigateLogin('Please sign in with staff or administrative credentials to access the internal portal.');
       return;
     }
-    if (currentUser.role !== 'SUPER_ADMIN' && currentUser.role !== 'OPERATIONAL_MANAGER') {
+    if (currentUser.role === 'SUPER_ADMIN') {
+      setCurrentPage('admin');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (currentUser.role === 'OPERATIONAL_MANAGER') {
+      setCurrentPage('manager');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
       showToast('Access Denied: Customer accounts do not have staff portal access.');
-      return;
     }
-    setCurrentPage('admin');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleLoginSuccess = async (userData) => {
@@ -74,10 +105,15 @@ export default function App() {
     setLoginNotice(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Role-based landing: Staff goes to Admin Dashboard; Customers go to Storefront
-    if (userData.role === 'SUPER_ADMIN' || userData.role === 'OPERATIONAL_MANAGER') {
+    // Role-based landing: Super Admin goes to Admin Dashboard; Operational Manager goes to Operations Dashboard
+    if (userData.role === 'SUPER_ADMIN') {
       setCurrentPage('admin');
-      showToast(`Welcome to Executive Portal, ${userData.firstName} (${userData.role})!`);
+      showToast(`Welcome to Executive Portal, ${userData.firstName}!`);
+      return;
+    }
+    if (userData.role === 'OPERATIONAL_MANAGER') {
+      setCurrentPage('manager');
+      showToast(`Welcome to Operations Portal, ${userData.firstName}!`);
       return;
     }
 
@@ -104,7 +140,9 @@ export default function App() {
     } finally {
       setCurrentUser(null);
       setCartCount(0);
+      setCurrentPage('home');
       showToast('You have been safely signed out.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -125,9 +163,20 @@ export default function App() {
       });
 
       if (response.ok) {
-        setCartCount((prev) => prev + 1);
         const displayName = product.productName || product.name;
         showToast(`Added ${displayName} to your cart!`);
+        // Sync true item count from DB
+        try {
+          const cartRes = await fetch('/api/cart', { credentials: 'include' });
+          if (cartRes.ok) {
+            const cartData = await cartRes.json();
+            if (cartData.success && cartData.data) {
+              setCartCount(cartData.data.totalItemCount || 0);
+            }
+          }
+        } catch (e) {
+          setCartCount((prev) => prev + 1);
+        }
       } else if (response.status === 401) {
         setCurrentUser(null);
         handleNavigateLogin('Your session has expired. Please sign in to add items to your cart.');
@@ -156,7 +205,7 @@ export default function App() {
       return;
     }
 
-    showToast(`Shopping cart active with ${cartCount} items.`);
+    setIsCartOpen(true);
   };
 
   const showToast = (message) => {
@@ -178,12 +227,21 @@ export default function App() {
           onLogout={handleLogout}
           onAddToCart={handleAddToCart}
           onCheckout={handleCheckout}
+          onOpenOrders={() => setIsOrdersOpen(true)}
           onNavigateAdmin={handleNavigateAdmin}
         />
       )}
 
       {currentPage === 'admin' && (
-        <AdminDashboard
+        <SuperAdminDashboard
+          currentUser={currentUser}
+          onNavigateHome={handleNavigateHome}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {currentPage === 'manager' && (
+        <OperationalManagerDashboard
           currentUser={currentUser}
           onNavigateHome={handleNavigateHome}
           onLogout={handleLogout}
@@ -206,6 +264,22 @@ export default function App() {
           onLoginSuccess={handleLoginSuccess}
         />
       )}
+
+      {/* Member 4 Cart Slide-Over Drawer */}
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        currentUser={currentUser}
+        onNavigateLogin={handleNavigateLogin}
+        onCartUpdated={(count) => setCartCount(count)}
+      />
+
+      {/* Member 5 Customer Order Invoices History Modal */}
+      <OrderHistoryModal
+        isOpen={isOrdersOpen}
+        onClose={() => setIsOrdersOpen(false)}
+        currentUser={currentUser}
+      />
     </div>
   );
 }

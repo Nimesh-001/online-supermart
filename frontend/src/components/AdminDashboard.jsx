@@ -25,11 +25,20 @@ import {
   Key,
   BadgeAlert,
   SlidersHorizontal,
-  Sparkles
+  Sparkles,
+  PackageCheck,
+  FileSpreadsheet,
+  FileCode2,
+  DollarSign
 } from 'lucide-react';
+import OrdersTab from './admin/OrdersTab';
+import SalesAnalyticsTab from './admin/SalesAnalyticsTab';
+import AuditTrailTab from './admin/AuditTrailTab';
 
 export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }) {
-  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'inventory' | 'replenish' | 'concurrency' | 'lowstock' | 'movements'
+  const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
+  const isOperationalManager = currentUser?.role === 'OPERATIONAL_MANAGER';
+  const [activeTab, setActiveTab] = useState(isOperationalManager ? 'orders' : 'sales'); // 'sales' | 'orders' | 'users' | 'inventory' | 'replenish' | 'concurrency' | 'lowstock' | 'movements' | 'audit'
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalProducts: 0,
@@ -423,6 +432,35 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
 
         {/* Dashboard Tabs */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 overflow-x-auto py-2.5 border-t border-slate-800/80 scrollbar-none">
+          {/* Executive Sales Tab - Member 6 */}
+          {isSuperAdmin && (
+            <button
+              onClick={() => setActiveTab('sales')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'sales'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 text-emerald-300" />
+              <span>Executive Sales & Reconciliation</span>
+            </button>
+          )}
+
+          {/* Orders & Fulfillment Tab - Member 5 */}
+          <button
+            onClick={() => setActiveTab('orders')}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+              activeTab === 'orders'
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            <PackageCheck className="w-4 h-4 text-blue-300" />
+            <span>Order Fulfillment</span>
+          </button>
+
+          {/* User Management Tab */}
           <button
             onClick={() => setActiveTab('users')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
@@ -438,6 +476,7 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
             </span>
           </button>
 
+          {/* Warehouse Inventory Tab - Member 3 */}
           <button
             onClick={() => setActiveTab('inventory')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
@@ -453,6 +492,7 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
             </span>
           </button>
 
+          {/* Stock Restock Tab */}
           <button
             onClick={() => setActiveTab('replenish')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
@@ -465,6 +505,7 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
             <span>Stock Restock (sp_add_stock)</span>
           </button>
 
+          {/* Concurrency Simulator */}
           <button
             onClick={() => setActiveTab('concurrency')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
@@ -474,9 +515,10 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
             }`}
           >
             <Zap className="w-4 h-4" />
-            <span>Concurrency Decrement Sandbox</span>
+            <span>Concurrency Sandbox</span>
           </button>
 
+          {/* Low Stock Alerts */}
           <button
             onClick={() => setActiveTab('lowstock')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
@@ -494,6 +536,7 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
             )}
           </button>
 
+          {/* Stock Movement Ledger */}
           <button
             onClick={() => setActiveTab('movements')}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
@@ -505,6 +548,21 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
             <History className="w-4 h-4" />
             <span>Audit Ledger</span>
           </button>
+
+          {/* System Audit Trail Tab - Member 6 */}
+          {isSuperAdmin && (
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'audit'
+                  ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+              }`}
+            >
+              <FileCode2 className="w-4 h-4 text-purple-300" />
+              <span>System Audit Trail</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -589,6 +647,16 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
           </div>
         </div>
 
+        {/* TAB 0: EXECUTIVE SALES ANALYTICS & RECONCILIATION (MEMBER 6) */}
+        {activeTab === 'sales' && (
+          <SalesAnalyticsTab currentUser={currentUser} notify={notify} />
+        )}
+
+        {/* TAB 0.5: ORDER FULFILLMENT & OPERATIONS (MEMBER 5) */}
+        {activeTab === 'orders' && (
+          <OrdersTab currentUser={currentUser} notify={notify} />
+        )}
+
         {/* TAB 1: USERS & STAFF MANAGEMENT */}
         {activeTab === 'users' && (
           <div className="space-y-6">
@@ -600,13 +668,19 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
                 </p>
               </div>
 
-              <button
-                onClick={() => setShowAddUserModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/30 cursor-pointer"
-              >
-                <UserPlus className="w-4 h-4 stroke-[2.5]" />
-                <span>Add System User</span>
-              </button>
+              {isSuperAdmin ? (
+                <button
+                  onClick={() => setShowAddUserModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-lg shadow-emerald-600/30 cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4 stroke-[2.5]" />
+                  <span>Add System User</span>
+                </button>
+              ) : (
+                <span className="text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 rounded-xl font-bold">
+                  User Creation Restricted to Super Admin
+                </span>
+              )}
             </div>
 
             {/* Filter and Search Bar */}
@@ -1257,6 +1331,11 @@ export default function AdminDashboard({ currentUser, onNavigateHome, onLogout }
               </div>
             </div>
           </div>
+        )}
+
+        {/* TAB 7: SYSTEM AUDIT TRAIL (MEMBER 6) */}
+        {activeTab === 'audit' && (
+          <AuditTrailTab currentUser={currentUser} notify={notify} />
         )}
       </main>
 
